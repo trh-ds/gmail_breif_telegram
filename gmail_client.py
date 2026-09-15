@@ -56,24 +56,20 @@ def _parse(msg: dict) -> dict:
 
 
 def fetch_recent(query: str = "newer_than:1d in:inbox", limit: int = 100) -> list[dict]:
-    """Metadata for matching inbox mail, fetched in one batched round-trip."""
+    """Metadata for matching inbox mail. Sequential on purpose: batching 40 gets trips Gmail's 429 rate limit."""
     svc = _svc()
     ids = svc.users().messages().list(userId="me", q=query, maxResults=limit).execute().get("messages", [])
-    out, errors = [], []
-    batch = svc.new_batch_http_request(
-        callback=lambda _, resp, err: errors.append(err) if err else out.append(_parse(resp))
-    )
-    for m in ids:
-        batch.add(svc.users().messages().get(userId="me", id=m["id"], format="metadata", metadataHeaders=HEADERS))
-    batch.execute()
-    if errors:
-        raise errors[0]
-    return out
-
+    return [
+        _parse(
+            svc.users().messages().get(userId="me", id=m["id"], format="metadata", metadataHeaders=HEADERS)
+            .execute(num_retries=3)
+        )
+        for m in ids
+    ]
 
 def get_message(msg_id: str) -> dict:
     return _parse(
-        _svc().users().messages().get(userId="me", id=msg_id, format="metadata", metadataHeaders=HEADERS).execute()
+        _svc().users().messages().get(userId="me", id=msg_id, format="metadata", metadataHeaders=HEADERS).execute(num_retries=3)
     )
 
 

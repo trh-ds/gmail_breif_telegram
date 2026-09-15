@@ -38,7 +38,7 @@ def _show(draft_id: str, d: dict) -> None:
 
 
 def _compose(instruction: str) -> None:
-    inbox = gmail_client.fetch_recent("newer_than:7d in:inbox", 40)
+    inbox = gmail_client.fetch_recent("newer_than:7d in:inbox", 30)
     ctx = "\n".join(f"[{e['id']}] from: {e['from']} | subject: {e['subject']} | {e['snippet'][:120]}" for e in inbox)
     raw = summarizer.chat(
         COMPOSE_PROMPT + _signature(), f"INBOX:\n{ctx}\n\nINSTRUCTION: {instruction}", json_mode=True
