@@ -6,3 +6,6 @@ briefing.log
 __pycache__/
 .venv/
 client_secret*.json
+.vercel
+.env*
+!.env.example
