@@ -9,3 +9,5 @@ client_secret*.json
 .vercel
 .env*
 !.env.example
+build/
+*.egg-info/
