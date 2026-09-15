@@ -1,0 +1,7 @@
+﻿.env
+credentials.json
+token.json
+seen_ids.json
+briefing.log
+__pycache__/
+.venv/
