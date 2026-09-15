@@ -1,4 +1,5 @@
 ﻿import logging
+import os
 import sys
 from datetime import date
 
@@ -14,7 +15,7 @@ import summarizer  # noqa: E402
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[logging.FileHandler("briefing.log"), logging.StreamHandler(sys.stdout)],
+    handlers=[logging.FileHandler(os.environ.get("LOG_PATH", "briefing.log")), logging.StreamHandler(sys.stdout)],
 )
 log = logging.getLogger(__name__)
 
@@ -44,3 +45,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

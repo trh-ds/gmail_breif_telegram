@@ -5,3 +5,4 @@ seen_ids.json
 briefing.log
 __pycache__/
 .venv/
+client_secret*.json

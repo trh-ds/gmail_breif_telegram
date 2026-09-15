@@ -38,26 +38,29 @@ Files created at runtime (all gitignored): `token.json`, `seen_ids.json`, `brief
 0 7 * * * cd /path/to/gmail_breif && .venv/bin/python main.py >> briefing.log 2>&1
 ```
 
-### Option B: GitHub Actions (free, no machine needed) — `.github/workflows/briefing.yml`
+### Option B: Vercel (free Hobby plan, no machine needed)
 
-Run step 4 once locally to produce `token.json`, then add these **repo secrets**
-(Settings → Secrets and variables → Actions):
+1. Run step 4 once locally so `token.json` exists.
+2. Push this repo to GitHub, import it at https://vercel.com/new (framework: Other).
+3. **Project → Settings → Environment Variables** — add:
 
-| Secret | Value |
+| Variable | Value |
 |---|---|
 | `GROQ_API_KEY` | from step 2 |
 | `TELEGRAM_BOT_TOKEN` | from step 3 |
 | `TELEGRAM_CHAT_ID` | from step 3 |
-| `GMAIL_CREDENTIALS_JSON` | full contents of `credentials.json` |
-| `GMAIL_TOKEN_JSON` | full contents of `token.json` |
+| `GMAIL_TOKEN_JSON` | full contents of `token.json` (one line) |
+| `SEEN_CACHE_PATH` | `/tmp/seen_ids.json` |
+| `LOG_PATH` | `/tmp/briefing.log` |
+| `CRON_SECRET` | any random string (Vercel sends it as `Authorization: Bearer ...`) |
 
-Cron is `30 1 * * *` UTC = 07:00 IST; edit the `cron:` line for your timezone.
-Trigger manually via **Actions → daily-briefing → Run workflow**.
+4. Redeploy. `vercel.json` schedules `GET /api/cron` at `30 1 * * *` UTC (07:00 IST) — edit for your timezone.
+   Hobby plan runs crons once per day and may fire anywhere within that hour.
+5. Test now: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.vercel.app/api/cron`
+   Logs: **Project → Logs**.
 
-> Vercel isn't a fit: serverless functions have no persistent disk, so `token.json`
-> and the seen-ID cache can't survive between runs and the one-time OAuth browser
-> flow can't happen there. GitHub Actions gives the same $0 daily cron without that problem.
-
+`credentials.json` is only needed locally for the one-time consent; Vercel never sees it.
 ## Why $0
 
-Gmail API (free quota), Groq free tier, Telegram Bot API (free), GitHub Actions (free minutes).
+Gmail API (free quota), Groq free tier, Telegram Bot API (free), Vercel Hobby (free).
+

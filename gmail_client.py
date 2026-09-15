@@ -1,4 +1,5 @@
-﻿import os
+﻿import json
+import os
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -11,6 +12,11 @@ TOKEN_FILE = "token.json"
 
 def _creds() -> Credentials:
     creds = None
+    if os.environ.get("GMAIL_TOKEN_JSON"):  # hosted: token passed via env, never written to disk
+        creds = Credentials.from_authorized_user_info(json.loads(os.environ["GMAIL_TOKEN_JSON"]), SCOPES)
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return creds
     if os.path.exists(TOKEN_FILE):
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     if creds and creds.expired and creds.refresh_token:

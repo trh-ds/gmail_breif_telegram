@@ -1,7 +1,8 @@
 ﻿import json
 import os
 
-CACHE_FILE = "seen_ids.json"
+# ponytail: on Vercel this lands in /tmp and may not survive between runs; newer_than:1d + once-a-day cron makes that harmless
+CACHE_FILE = os.environ.get("SEEN_CACHE_PATH", "seen_ids.json")
 
 
 def load() -> set[str]:
@@ -24,3 +25,4 @@ if __name__ == "__main__":
     save({"b", "a"})
     assert load() == {"a", "b"}
     print("seen_cache ok")
+
