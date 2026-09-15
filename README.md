@@ -1,4 +1,4 @@
-﻿# gmail_breif
+# gmail_breif
 
 Daily Gmail triage → Groq (llama-3.3-70b) → Telegram. Runs once a day, costs $0.
 

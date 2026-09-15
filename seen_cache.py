@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 
 # ponytail: on Vercel this lands in /tmp and may not survive between runs; newer_than:1d + once-a-day cron makes that harmless
