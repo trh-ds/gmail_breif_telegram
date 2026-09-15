@@ -25,7 +25,7 @@ https://console.groq.com/keys → Create API Key.
 python -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt
 Copy-Item .env.example .env   # fill in GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-.\.venv\Scripts\python main.py   # first run opens a browser for Google consent, writes token.json
+.\.venv\Scripts\python briefing.py   # first run opens a browser for Google consent, writes token.json
 ```
 
 Files created at runtime (all gitignored): `token.json`, `seen_ids.json`, `briefing.log`.
@@ -35,7 +35,7 @@ Files created at runtime (all gitignored): `token.json`, `seen_ids.json`, `brief
 ### Option A: cron on any Linux box / VPS / Raspberry Pi (07:00 daily)
 
 ```
-0 7 * * * cd /path/to/gmail_breif && .venv/bin/python main.py >> briefing.log 2>&1
+0 7 * * * cd /path/to/gmail_breif && .venv/bin/python briefing.py >> briefing.log 2>&1
 ```
 
 ### Option B: Vercel (free Hobby plan, no machine needed)

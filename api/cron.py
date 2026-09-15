@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import main  # noqa: E402
+import briefing  # noqa: E402
 
 
 class handler(BaseHTTPRequestHandler):
@@ -14,7 +14,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(401)
             self.end_headers()
             return
-        code = main.main()
+        code = briefing.main()
         self.send_response(200 if code == 0 else 500)
         self.end_headers()
         self.wfile.write(b"ok" if code == 0 else b"failed")
