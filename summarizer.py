@@ -19,7 +19,7 @@ def summarize(emails: list[dict]) -> str:
         "https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
         json={
-            "model": "llama-3.3-70b-versatile",
+            "model": os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b"),
             "temperature": 0.2,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -30,3 +30,4 @@ def summarize(emails: list[dict]) -> str:
     )
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"].strip()
+
