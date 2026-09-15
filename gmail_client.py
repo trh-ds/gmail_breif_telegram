@@ -1,42 +1,13 @@
 import base64
-import json
-import os
 from email.message import EmailMessage
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+from google_auth import service
 
-SCOPES = [
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.compose",  # drafts + send only, no delete/modify of mail
-]
-TOKEN_FILE = "token.json"
 HEADERS = ["From", "To", "Subject", "Message-ID", "Reply-To", "In-Reply-To", "References"]
 
 
-def _creds() -> Credentials:
-    creds = None
-    if os.environ.get("GMAIL_TOKEN_JSON"):  # hosted: token passed via env, never written to disk
-        creds = Credentials.from_authorized_user_info(json.loads(os.environ["GMAIL_TOKEN_JSON"]), SCOPES)
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        return creds
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    elif not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file(os.environ["GMAIL_CREDENTIALS_PATH"], SCOPES)
-        creds = flow.run_local_server(port=0)  # one-time interactive auth
-    with open(TOKEN_FILE, "w") as f:
-        f.write(creds.to_json())
-    return creds
-
-
 def _svc():
-    return build("gmail", "v1", credentials=_creds(), cache_discovery=False)
+    return service("gmail", "v1")
 
 
 def _parse(msg: dict) -> dict:

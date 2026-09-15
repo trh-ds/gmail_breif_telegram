@@ -3,6 +3,7 @@ import json
 import os
 import re
 
+import assistant
 import gmail_client
 import notifier
 import summarizer
@@ -17,10 +18,13 @@ COMPOSE_PROMPT = (
 )
 REVISE_PROMPT = "Rewrite this email body following the user's instruction. Return ONLY the new plain-text body."
 HELP = (
-    "Tell me what to send, e.g.\n"
+    "Just talk to me:\n"
     "- reply to John saying I'll send the invoice by Friday\n"
     "- email alice@x.com about rescheduling Monday's call\n"
-    "Then press Send or Discard, or reply to the draft message with changes."
+    "- add todo: renew passport by Friday\n"
+    "- this week's targets: ship v2, gym 3x, read 2 chapters\n"
+    "- plan my day / what's on tomorrow / move gym to 6pm\n"
+    "Email drafts get Send/Discard buttons; reply to a draft to revise it."
 )
 
 
@@ -95,4 +99,8 @@ def handle(update: dict) -> None:
     if text.startswith("/"):
         return notifier.send(HELP, parse_mode=None)
     m = re.search(r"Draft: (\S+)$", msg.get("reply_to_message", {}).get("text", ""))
-    return _revise(m.group(1), text) if m else _compose(text)
+    if m:
+        return _revise(m.group(1), text)
+    instruction = assistant.handle(text)
+    if instruction:
+        _compose(instruction)

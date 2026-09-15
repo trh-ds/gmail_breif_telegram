@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import briefing  # noqa: E402  (loads .env, configures logging)
+import assistant  # noqa: E402
 import bot  # noqa: E402
 import notifier  # noqa: E402
 
@@ -19,12 +20,19 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body.encode())
 
-    def do_GET(self):  # Vercel cron -> daily briefing
-        if self.path.split("?")[0] != "/api/cron":
+    def do_GET(self):  # /api/cron: Vercel daily cron -> briefing. /api/remind: external 5-min cron -> event reminders
+        path = self.path.split("?")[0]
+        if path not in ("/api/cron", "/api/remind"):
             return self._reply(404, "not found")
         secret = os.environ.get("CRON_SECRET")
         if secret and self.headers.get("Authorization") != f"Bearer {secret}":
             return self._reply(401, "unauthorized")
+        if path == "/api/remind":
+            try:
+                return self._reply(200, f"reminded {assistant.remind()}")
+            except Exception as exc:
+                log.exception("remind failed")
+                return self._reply(500, f"failed: {type(exc).__name__}")
         code = briefing.main()
         self._reply(200 if code == 0 else 500, "ok" if code == 0 else "failed")
 

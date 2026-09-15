@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import assistant  # noqa: E402
 import gmail_client  # noqa: E402
 import notifier  # noqa: E402
 import seen_cache  # noqa: E402
@@ -25,12 +26,13 @@ def main() -> int:
         seen = seen_cache.load()
         emails = [e for e in gmail_client.fetch_recent() if e["id"] not in seen]
         header = f"*Briefing {date.today():%a %d %b}*"
+        agenda = assistant.agenda()
         if not emails:
-            notifier.send(f"{header}\nInbox is clear.")
+            notifier.send(f"{header}\nInbox is clear.\n\n{agenda}")
             log.info("run ok: 0 new emails")
             return 0
         summary = summarizer.summarize(emails)
-        notifier.send(f"{header} ({len(emails)} new)\n\n{summary}")
+        notifier.send(f"{header} ({len(emails)} new)\n\n{summary}\n\n{agenda}")
         seen_cache.save(seen | {e["id"] for e in emails})
         log.info("run ok: %d new emails", len(emails))
         return 0

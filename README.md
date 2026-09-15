@@ -1,11 +1,11 @@
 # gmail_breif
 
-Daily Gmail triage → Groq → Telegram, plus a Telegram bot that drafts and sends email for you. Costs $0.
+Daily Gmail triage + agenda → Telegram, plus a Telegram bot that drafts/sends email, manages your to-dos and weekly targets (Google Tasks), plans your day (Google Calendar) and reminds you before events. Costs $0.
 
 ## 1. Google Cloud OAuth (Gmail)
 
 1. https://console.cloud.google.com → New project.
-2. **APIs & Services → Library** → enable **Gmail API**.
+2. **APIs & Services → Library** → enable **Gmail API**, **Google Calendar API**, **Google Tasks API**.
 3. **OAuth consent screen** → External → add your Gmail as a *test user*.
 4. **Credentials → Create credentials → OAuth client ID → Desktop app** → download JSON → save as `credentials.json` in this folder.
 
@@ -86,8 +86,23 @@ Then just message the bot:
 - **Send ✅** sends it from your Gmail; **Discard 🗑** deletes the draft
 
 Drafts are real Gmail drafts, so you can also edit/send them from the Gmail app. Only your `TELEGRAM_CHAT_ID` is served.
-Scopes: `gmail.readonly` + `gmail.compose` (drafts + send; the bot can't delete or modify existing mail).
+Scopes: `gmail.readonly` + `gmail.compose` (drafts + send; the bot can't delete or modify existing mail) + `calendar.events` + `tasks`.
 Optional `SENDER_NAME` env var controls the sign-off.
+## 7. To-dos, weekly targets, day planning, reminders
+
+Same bot, plain language. To-dos live in Google Tasks (default list), targets in a "Weekly Targets" list it creates,
+plans go into your primary Google Calendar — so everything is also visible/editable in the Google apps.
+
+- `add todo: renew passport by Friday` / `done with groceries`
+- `this week's targets: ship v2, gym 3x, read 2 chapters`
+- `plan my day from 11am` → time blocks in Calendar, built from targets + to-dos around existing events
+- `move gym to 6pm` / `delete the reading block` / `what's on tomorrow?`
+
+The 07:00 briefing now ends with today's events, open to-dos and targets.
+
+**Reminders (15 min before each event):** Vercel Hobby crons run only once a day, so use a free external pinger.
+At https://cron-job.org create a job: URL `https://<your-app>.vercel.app/api/remind`, every 5 minutes,
+header `Authorization: Bearer <CRON_SECRET>`. Each event is reminded once (marked via a private extended property).
 ## Why $0
 
 Gmail API (free quota), Groq free tier, Telegram Bot API (free), Vercel Hobby (free).
