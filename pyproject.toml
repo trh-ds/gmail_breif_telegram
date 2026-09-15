@@ -17,4 +17,4 @@ build-backend = "setuptools.build_meta"
 py-modules = ["briefing", "gmail_client", "summarizer", "notifier", "seen_cache"]
 
 [tool.vercel]
-entrypoint = "api.cron:handler"
+entrypoint = "api.index:handler"

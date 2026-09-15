@@ -1,8 +1,8 @@
 # gmail_breif
 
-Daily Gmail triage → Groq (llama-3.3-70b) → Telegram. Runs once a day, costs $0.
+Daily Gmail triage → Groq → Telegram, plus a Telegram bot that drafts and sends email for you. Costs $0.
 
-## 1. Google Cloud OAuth (Gmail, readonly)
+## 1. Google Cloud OAuth (Gmail)
 
 1. https://console.cloud.google.com → New project.
 2. **APIs & Services → Library** → enable **Gmail API**.
@@ -70,6 +70,24 @@ Test now: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.verc
 Logs: **Project → Logs** on vercel.com.
 
 `credentials.json` is only needed locally for the one-time consent; Vercel never sees it.
+## 6. Telegram bot: draft & send email
+
+After deploying, register the webhook once (uses the same `CRON_SECRET`):
+
+```powershell
+Invoke-RestMethod -Method Post "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" -Body @{ url = "https://<your-app>.vercel.app/api/telegram"; secret_token = "<CRON_SECRET>"; allowed_updates = '["message","callback_query"]' }
+```
+
+Then just message the bot:
+
+- `reply to Priya saying the deck will be ready Thursday` → finds the email in your last 7 days, drafts a threaded reply
+- `email alice@x.com about moving Monday's call to 3pm` → drafts a new email
+- Reply to the draft message with `shorter` / `more formal` / anything → revised draft
+- **Send ✅** sends it from your Gmail; **Discard 🗑** deletes the draft
+
+Drafts are real Gmail drafts, so you can also edit/send them from the Gmail app. Only your `TELEGRAM_CHAT_ID` is served.
+Scopes: `gmail.readonly` + `gmail.compose` (drafts + send; the bot can't delete or modify existing mail).
+Optional `SENDER_NAME` env var controls the sign-off.
 ## Why $0
 
 Gmail API (free quota), Groq free tier, Telegram Bot API (free), Vercel Hobby (free).

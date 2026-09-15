@@ -1,13 +1,19 @@
+import base64
 import json
 import os
+from email.message import EmailMessage
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.compose",  # drafts + send only, no delete/modify of mail
+]
 TOKEN_FILE = "token.json"
+HEADERS = ["From", "To", "Subject", "Message-ID", "Reply-To", "In-Reply-To", "References"]
 
 
 def _creds() -> Credentials:
@@ -29,20 +35,81 @@ def _creds() -> Credentials:
     return creds
 
 
-def fetch_recent() -> list[dict]:
-    """Return [{id, from, subject, snippet}] for inbox mail from the last 24h."""
-    svc = build("gmail", "v1", credentials=_creds(), cache_discovery=False)
-    resp = svc.users().messages().list(userId="me", q="newer_than:1d in:inbox", maxResults=100).execute()
-    out = []
-    for m in resp.get("messages", []):
-        msg = svc.users().messages().get(
-            userId="me", id=m["id"], format="metadata", metadataHeaders=["From", "Subject"]
-        ).execute()
-        headers = {h["name"]: h["value"] for h in msg["payload"].get("headers", [])}
-        out.append({
-            "id": m["id"],
-            "from": headers.get("From", ""),
-            "subject": headers.get("Subject", "(no subject)"),
-            "snippet": msg.get("snippet", ""),
-        })
+def _svc():
+    return build("gmail", "v1", credentials=_creds(), cache_discovery=False)
+
+
+def _parse(msg: dict) -> dict:
+    h = {x["name"].lower(): x["value"] for x in msg["payload"].get("headers", [])}
+    return {
+        "id": msg["id"],
+        "thread_id": msg["threadId"],
+        "snippet": msg.get("snippet", ""),
+        "from": h.get("from", ""),
+        "to": h.get("to", ""),
+        "subject": h.get("subject", "(no subject)"),
+        "message_id": h.get("message-id", ""),
+        "reply_to": h.get("reply-to") or h.get("from", ""),
+        "in_reply_to": h.get("in-reply-to", ""),
+        "references": h.get("references", ""),
+    }
+
+
+def fetch_recent(query: str = "newer_than:1d in:inbox", limit: int = 100) -> list[dict]:
+    """Metadata for matching inbox mail, fetched in one batched round-trip."""
+    svc = _svc()
+    ids = svc.users().messages().list(userId="me", q=query, maxResults=limit).execute().get("messages", [])
+    out, errors = [], []
+    batch = svc.new_batch_http_request(
+        callback=lambda _, resp, err: errors.append(err) if err else out.append(_parse(resp))
+    )
+    for m in ids:
+        batch.add(svc.users().messages().get(userId="me", id=m["id"], format="metadata", metadataHeaders=HEADERS))
+    batch.execute()
+    if errors:
+        raise errors[0]
     return out
+
+
+def get_message(msg_id: str) -> dict:
+    return _parse(
+        _svc().users().messages().get(userId="me", id=msg_id, format="metadata", metadataHeaders=HEADERS).execute()
+    )
+
+
+def _raw(d: dict) -> dict:
+    """{to, subject, body, thread_id?, in_reply_to?, references?} -> Gmail draft body."""
+    m = EmailMessage()
+    m["To"], m["Subject"] = d["to"], d["subject"]
+    if d.get("in_reply_to"):
+        m["In-Reply-To"] = d["in_reply_to"]
+        refs = d.get("references", "")
+        m["References"] = refs if d["in_reply_to"] in refs else f"{refs} {d['in_reply_to']}".strip()
+    m.set_content(d["body"])
+    msg = {"raw": base64.urlsafe_b64encode(m.as_bytes()).decode()}
+    if d.get("thread_id"):
+        msg["threadId"] = d["thread_id"]
+    return {"message": msg}
+
+
+def create_draft(d: dict) -> str:
+    return _svc().users().drafts().create(userId="me", body=_raw(d)).execute()["id"]
+
+
+def update_draft(draft_id: str, d: dict) -> None:
+    _svc().users().drafts().update(userId="me", id=draft_id, body=_raw(d)).execute()
+
+
+def read_draft(draft_id: str) -> dict:
+    msg = _svc().users().drafts().get(userId="me", id=draft_id, format="full").execute()["message"]
+    d = _parse(msg)
+    d["body"] = base64.urlsafe_b64decode(msg["payload"]["body"]["data"]).decode()
+    return d
+
+
+def send_draft(draft_id: str) -> None:
+    _svc().users().drafts().send(userId="me", body={"id": draft_id}).execute()
+
+
+def delete_draft(draft_id: str) -> None:
+    _svc().users().drafts().delete(userId="me", id=draft_id).execute()
