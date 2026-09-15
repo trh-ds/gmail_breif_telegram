@@ -23,7 +23,7 @@ https://console.groq.com/keys → Create API Key.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\pip install .
 Copy-Item .env.example .env   # fill in GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 .\.venv\Scripts\python briefing.py   # first run opens a browser for Google consent, writes token.json
 ```
@@ -40,9 +40,14 @@ Files created at runtime (all gitignored): `token.json`, `seen_ids.json`, `brief
 
 ### Option B: Vercel (free Hobby plan, no machine needed)
 
-1. Run step 4 once locally so `token.json` exists.
-2. Push this repo to GitHub, import it at https://vercel.com/new (framework: Other).
-3. **Project → Settings → Environment Variables** — add:
+Run step 4 once locally so `token.json` exists, then:
+
+```powershell
+npx vercel login
+npx vercel link --yes
+# add each var below with:  echo VALUE | npx vercel env add NAME production   (or via the dashboard)
+npx vercel --prod --yes
+```
 
 | Variable | Value |
 |---|---|
@@ -54,10 +59,15 @@ Files created at runtime (all gitignored): `token.json`, `seen_ids.json`, `brief
 | `LOG_PATH` | `/tmp/briefing.log` |
 | `CRON_SECRET` | any random string (Vercel sends it as `Authorization: Bearer ...`) |
 
-4. Redeploy. `vercel.json` schedules `GET /api/cron` at `30 1 * * *` UTC (07:00 IST) — edit for your timezone.
-   Hobby plan runs crons once per day and may fire anywhere within that hour.
-5. Test now: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.vercel.app/api/cron`
-   Logs: **Project → Logs**.
+Note: on Windows, PowerShell's pipe appends a newline — Vercel rejects `CRON_SECRET` with trailing whitespace.
+Use the dashboard or `cmd /c "npx vercel env add NAME production < value.txt"`.
+
+`vercel.json` schedules `GET /api/cron` at `30 1 * * *` UTC (07:00 IST) — edit for your timezone.
+Hobby plan runs crons once per day and may fire anywhere within that hour.
+`pyproject.toml` holds the deps (Vercel's Python runtime uses `uv`) and the `api.cron:handler` entrypoint.
+
+Test now: `curl -H "Authorization: Bearer <CRON_SECRET>" https://<your-app>.vercel.app/api/cron`
+Logs: **Project → Logs** on vercel.com.
 
 `credentials.json` is only needed locally for the one-time consent; Vercel never sees it.
 ## Why $0

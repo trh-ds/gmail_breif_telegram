@@ -1,0 +1,12 @@
+README.md
+briefing.py
+gmail_client.py
+notifier.py
+pyproject.toml
+seen_cache.py
+summarizer.py
+gmail_breif.egg-info/PKG-INFO
+gmail_breif.egg-info/SOURCES.txt
+gmail_breif.egg-info/dependency_links.txt
+gmail_breif.egg-info/requires.txt
+gmail_breif.egg-info/top_level.txt
